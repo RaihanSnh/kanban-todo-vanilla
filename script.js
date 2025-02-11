@@ -1,40 +1,58 @@
-document.addEventListener
-    ("DOMContentLoaded", function () {
-        renderContent();
-        setTimeout(() => {
-            setInterval(() => {
-                renderContent();
-            }, 1000);
-        }, 2000);
-    });
-
-const TodoInput = document.getElementById('todo');
-const TodoInputButton = document.getElementById('add');
-let data = JSON.parse(localStorage.getItem('tasks')) || [];
-const TodoListElement = document.getElementById('todo-list');
-
-TodoInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    addTask();
-  }
+document.addEventListener("DOMContentLoaded", function () {
+    renderContent();
+    setTimeout(() => {
+        setInterval(() => {
+            renderContent();
+        }, 1000);
+    }, 2000);
 });
 
-TodoInputButton.addEventListener('click', () => {
-    if (TodoInput.value) {
-        addTask();
+const form = document.getElementById('task-form');
+const titleInput = document.getElementById('title');
+const descInput = document.getElementById('description');
+const titleError = document.getElementById('title-error');
+const descError = document.getElementById('desc-error');
+let data = JSON.parse(localStorage.getItem('tasks')) || [];
+
+// Form submission handler
+form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = titleInput.value.trim();
+    const desc = descInput.value.trim();
+
+    // Validation
+    let isValid = true;
+    
+    if (title.length < 5 || title.length > 25) {
+        titleError.style.display = 'block';
+        isValid = false;
+    } else {
+        titleError.style.display = 'none';
+    }
+    
+    if (desc.length < 20 || desc.length > 100) {
+        descError.style.display = 'block';
+        isValid = false;
+    } else {
+        descError.style.display = 'none';
+    }
+
+    if (isValid) {
+        addTask(title, desc);
+        form.reset();
     }
 });
 
-function addTask() {
+function addTask(title, desc) {
     data.push({
         id: "task-" + Date.now(),
-        title: TodoInput.value,
+        title: title,
+        description: desc,
         status: "todo-list",
         timestamp: []
     });
-    localStorage.setItem('tasks', JSON.stringify(data));
+    updateLocalStorage();
     renderContent();
-    TodoInput.value = '';
 }
 
 function allowDrop(event) {
@@ -43,115 +61,116 @@ function allowDrop(event) {
 
 function renderContent() {
     const columns = ['todo-list', 'in-progress', 'done'];
-    columns.forEach((value) => {
-        const column = document.getElementById(value);
-        column.querySelector('.task-container').
-            innerHTML = '';
-        data.forEach(element => {
-            if (element.status === value) {
-                const task = createTaskElement(element);
-                column.querySelector('.task-container').
-                     appendChild(task);
+    columns.forEach((columnId) => {
+        const column = document.getElementById(columnId);
+        column.querySelector('.task-container').innerHTML = '';
+        data.forEach(task => {
+            if (task.status === columnId) {
+                const taskElement = createTaskElement(task);
+                column.querySelector('.task-container').appendChild(taskElement);
             }
         });
     });
 }
 
-function createTaskElement(element) {
-    const title = element.title;
-    const id = element.id;
-    const task = document.createElement("div");
-    let timer = "";
-    if(element.status === 'in-progress') {
-        // format 0d 0h 0m 0s
-        const startUnix = (new Date(element.timestamp[0].dateStart)).valueOf();
-        const nowUnix = (new Date()).valueOf();
+function createTaskElement(task) {
+    const element = document.createElement("div");
+    element.className = `task ${task.status === 'done' ? 'done-task' : ''}`;
+    element.id = task.id;
+    element.draggable = true;
+
+    const titleElement = document.createElement('div');
+    titleElement.className = 'task-title';
+    titleElement.textContent = task.title;
+
+    const descElement = document.createElement('div');
+    descElement.textContent = task.description;
+
+    const timerContainer = document.createElement('div');
+    timerContainer.className = 'timer-info';
+    
+    if(task.status === 'in-progress') {
+        const startUnix = new Date(task.timestamp[0]?.dateStart).valueOf();
+        const nowUnix = Date.now();
         const diff = nowUnix - startUnix;
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        timer = `<span><b>Time elapsed:</b> ${days}d ${hours}h ${minutes}m ${seconds}s</span>`;
-    } else if(element.status === 'done') {
-        timer = `<span><b>Ends at:</b> ${element.timestamp[0].dateEnd}</span>`;
+        timerContainer.innerHTML = `<span><b>Time elapsed:</b> ${days}d ${hours}h ${minutes}m ${seconds}s</span>`;
     }
-    task.id = id;
-    task.className = "task";
-    task.draggable = true;
-    task.innerHTML =
-        `<div style="display: flex; flex-direction: column">${title}
-        ${timer}</div>
-    <span class="delete-btn"
-          onclick="deleteTask('${id}')">
-        ❌
-    </span>`;
-    task.addEventListener("dragstart", drag);
-    return task;
+    
+    if(task.status === 'done' && task.timestamp[0]?.dateEnd) {
+        timerContainer.innerHTML = `<span><b>Completed at:</b> ${new Date(task.timestamp[0].dateEnd).toLocaleString()}</span>`;
+    }
+
+    const deleteBtn = document.createElement('span');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.innerHTML = '❌';
+    deleteBtn.onclick = () => deleteTask(task.id);
+
+    const contentWrapper = document.createElement('div');
+    contentWrapper.style.flexGrow = '1';
+    contentWrapper.appendChild(titleElement);
+    contentWrapper.appendChild(descElement);
+    contentWrapper.appendChild(timerContainer);
+
+    element.appendChild(contentWrapper);
+    element.appendChild(deleteBtn);
+    element.addEventListener("dragstart", drag);
+
+    return element;
 }
 
 function deleteTask(taskId) {
-    data = data.
-        filter(task => task.id !== taskId);
+    data = data.filter(task => task.id !== taskId);
     updateLocalStorage();
     renderContent();
 }
 
 function drag(event) {
-    event.dataTransfer.
-        setData("text/plain", event.target.id);
+    event.dataTransfer.setData("text/plain", event.target.id);
 }
 
 function drop(event, columnId) {
     event.preventDefault();
-    const dataEl = event.
-        dataTransfer.getData("text/plain");
-    const draggedElement =
-        document.getElementById(dataEl);
-    if (draggedElement) {
-        const taskStatus = columnId;
-        updateTaskStatus(dataEl, taskStatus);
-        event.target.closest('.card').querySelector('.task-container').
-            appendChild(draggedElement);
-    }
+    const taskId = event.dataTransfer.getData("text/plain");
+    const draggedElement = document.getElementById(taskId);
+    
+    if (!draggedElement) return;
+
+    updateTaskStatus(taskId, columnId);
+    event.target.closest('.card').querySelector('.task-container').appendChild(draggedElement);
 }
 
 function updateTaskStatus(taskId, newStatus) {
-    const inProgress = newStatus === 'in-progress';
-    const done = newStatus === 'done' || newStatus === 'todo-list';
-    const dateStartValue = (dateStart) => inProgress ? new Date().valueOf(): dateStart;
-    const dateEndValue = (dateEnd) => done ? new Date().valueOf() : dateEnd;
     data = data.map(task => {
         if (task.id === taskId) {
-            const newTimestamp = {
-                // TODO: make dateStart and dateEnd from timestamp not task
-                dateStart: dateStartValue(task.dateStart),
-                dateEnd: dateEndValue(task.dateEnd)
-            };
-
-            // Ensure no duplicate timestamps and merge dateStart and dateEnd into one object
-            const updatedTimestamps = [...task.timestamp, newTimestamp].reduce((acc, curr) => {
-                const existing = acc.find(t => t.dateStart === curr.dateStart || t.dateEnd === curr.dateEnd);
-                if (existing) {
-                    existing.dateStart = existing.dateStart || curr.dateStart;
-                    existing.dateEnd = existing.dateEnd || curr.dateEnd;
-                } else {
-                    acc.push(curr);
-                }
-                return acc;
-            }, []);
+            const now = Date.now();
+            const newTimestamps = [...task.timestamp];
+            
+            if(newStatus === 'in-progress') {
+                newTimestamps.push({ dateStart: now });
+            }
+            
+            if(newStatus === 'done') {
+                const lastTimestamp = newTimestamps[newTimestamps.length - 1];
+                if(lastTimestamp) lastTimestamp.dateEnd = now;
+            }
 
             return {
                 ...task,
                 status: newStatus,
-                timestamp: updatedTimestamps
+                timestamp: newTimestamps
             };
         }
         return task;
     });
+    
     updateLocalStorage();
+    renderContent();
 }
 
 function updateLocalStorage() {
-    localStorage.setItem
-        ('tasks', JSON.stringify(data));
+    localStorage.setItem('tasks', JSON.stringify(data));
 }

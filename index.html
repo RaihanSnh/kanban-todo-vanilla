@@ -19,10 +19,17 @@
     <body>
         <div>
             <h1>Kanban Todo App</h1>
-            <div>
-                <input type="text" id="todo" placeholder="Enter a todo">
-                <button id="add">Add</button>
-            </div>
+            <form id="task-form">
+                <div>
+                    <input type="text" id="title" placeholder="Task title">
+                    <div class="error" id="title-error">Title must be 5-25 characters</div>
+                </div>
+                <div>
+                    <textarea id="description" placeholder="Task description"></textarea>
+                    <div class="error" id="desc-error">Description must be 20-100 characters</div>
+                </div>
+                <button type="submit">Add Task</button>
+            </form>
             <div class="card-wrapper">
                 <div class="card" ondragover="allowDrop(event)" ondrop="drop(event, 'todo-list')" id="todo-list">
                     <div>

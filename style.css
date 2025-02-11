@@ -32,3 +32,50 @@
 .delete-btn {
     cursor: pointer;
 }
+
+#task-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px 0;
+    max-width: 500px;
+}
+
+#task-form input, 
+#task-form textarea {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+}
+
+#task-form textarea {
+    height: 80px;
+    resize: vertical;
+}
+
+#task-form button {
+    align-self: flex-start;
+    padding: 8px 20px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.task-title {
+    margin-bottom: 5px;
+}
+
+.error { 
+    color: red; display: none; 
+}
+
+.task-title { 
+    font-weight: bold; 
+}
+
+.done-task .task-title { 
+    text-decoration: line-through; 
+}
