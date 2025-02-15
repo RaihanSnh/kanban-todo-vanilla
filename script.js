@@ -1,26 +1,29 @@
 document.addEventListener("DOMContentLoaded", function () {
     renderContent();
-    setTimeout(() => {
-        setInterval(() => {
-            renderContent();
-        }, 1000);
-    }, 2000);
+    setInterval(renderContent, 1000);
+});
+
+document.addEventListener('dragend', (e) => {
+    document.querySelectorAll('.card').forEach(card => {
+        card.classList.remove('dragover');
+    });
 });
 
 const form = document.getElementById('task-form');
 const titleInput = document.getElementById('title');
 const descInput = document.getElementById('description');
+const deadlineInput = document.getElementById('deadline');
 const titleError = document.getElementById('title-error');
 const descError = document.getElementById('desc-error');
+const deadlineError = document.getElementById('deadline-error');
 let data = JSON.parse(localStorage.getItem('tasks')) || [];
 
-// Form submission handler
 form.addEventListener('submit', (e) => {
     e.preventDefault();
     const title = titleInput.value.trim();
     const desc = descInput.value.trim();
+    const deadline = deadlineInput.value;
 
-    // Validation
     let isValid = true;
     
     if (title.length < 5 || title.length > 25) {
@@ -36,27 +39,34 @@ form.addEventListener('submit', (e) => {
     } else {
         descError.style.display = 'none';
     }
+    
+    if (!deadline) {
+        deadlineError.style.display = 'block';
+        isValid = false;
+    } else {
+        deadlineError.style.display = 'none';
+    }
 
     if (isValid) {
-        addTask(title, desc);
+        addTask(title, desc, deadline);
         form.reset();
     }
 });
 
-function addTask(title, desc) {
+function addTask(title, desc, deadline) {
+    const createdAt = new Date().toLocaleString();
     data.push({
         id: "task-" + Date.now(),
         title: title,
         description: desc,
+        deadline: deadline,
         status: "todo-list",
-        timestamp: []
+        createdAt: createdAt,
+        endAt: null,
+        inProgressStart: null
     });
     updateLocalStorage();
     renderContent();
-}
-
-function allowDrop(event) {
-    event.preventDefault();
 }
 
 function renderContent() {
@@ -74,11 +84,18 @@ function renderContent() {
 }
 
 function createTaskElement(task) {
+
+    const dragHandle = document.createElement('span');
+    dragHandle.className = 'drag-handle';
+    dragHandle.innerHTML = '⠿'; 
+    dragHandle.draggable = true;
+    dragHandle.addEventListener("dragstart", drag);
     const element = document.createElement("div");
     element.className = `task ${task.status === 'done' ? 'done-task' : ''}`;
     element.id = task.id;
     element.draggable = true;
 
+    // task content
     const titleElement = document.createElement('div');
     titleElement.className = 'task-title';
     titleElement.textContent = task.title;
@@ -86,22 +103,39 @@ function createTaskElement(task) {
     const descElement = document.createElement('div');
     descElement.textContent = task.description;
 
+    // time information
+    const timeInfo = document.createElement('div');
+    timeInfo.className = 'time-info';
+    
+    const startAt = document.createElement('div');
+    startAt.innerHTML = `<b>Start at:</b> ${task.createdAt}`;
+    
+    const deadlineInfo = document.createElement('div');
+    deadlineInfo.innerHTML = `<b>Deadline:</b> ${new Date(task.deadline).toLocaleString()}`;
+    
+    const endAt = document.createElement('div');
+    endAt.innerHTML = `<b>End at:</b> ${task.endAt || '-'}`;
+
+    // timer in-progress
     const timerContainer = document.createElement('div');
     timerContainer.className = 'timer-info';
     
     if(task.status === 'in-progress') {
-        const startUnix = new Date(task.timestamp[0]?.dateStart).valueOf();
-        const nowUnix = Date.now();
-        const diff = nowUnix - startUnix;
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        timerContainer.innerHTML = `<span><b>Time elapsed:</b> ${days}d ${hours}h ${minutes}m ${seconds}s</span>`;
-    }
-    
-    if(task.status === 'done' && task.timestamp[0]?.dateEnd) {
-        timerContainer.innerHTML = `<span><b>Completed at:</b> ${new Date(task.timestamp[0].dateEnd).toLocaleString()}</span>`;
+        const now = new Date();
+        const deadlineDate = new Date(task.deadline);
+        const timeDiff = deadlineDate - now;
+        
+        if(timeDiff > 0) {
+            const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            timerContainer.innerHTML = `
+                <div><b>Time remaining:</b> ${days}d ${hours}h ${minutes}m ${seconds}s</div>
+            `;
+        } else {
+            timerContainer.innerHTML = `<div style="color:red;"><b>Deadline passed!</b></div>`;
+        }
     }
 
     const deleteBtn = document.createElement('span');
@@ -109,15 +143,21 @@ function createTaskElement(task) {
     deleteBtn.innerHTML = '❌';
     deleteBtn.onclick = () => deleteTask(task.id);
 
+    // assemble elements
+    timeInfo.appendChild(startAt);
+    timeInfo.appendChild(deadlineInfo);
+    timeInfo.appendChild(endAt);
+    
     const contentWrapper = document.createElement('div');
     contentWrapper.style.flexGrow = '1';
     contentWrapper.appendChild(titleElement);
     contentWrapper.appendChild(descElement);
+    contentWrapper.appendChild(timeInfo);
     contentWrapper.appendChild(timerContainer);
 
+    element.appendChild(dragHandle);
     element.appendChild(contentWrapper);
     element.appendChild(deleteBtn);
-    element.addEventListener("dragstart", drag);
 
     return element;
 }
@@ -129,39 +169,46 @@ function deleteTask(taskId) {
 }
 
 function drag(event) {
-    event.dataTransfer.setData("text/plain", event.target.id);
+    const taskElement = event.target.closest('.task');
+    if(taskElement) {
+        event.dataTransfer.setData("text/plain", taskElement.id);
+        event.dataTransfer.effectAllowed = "move";
+    }
 }
 
 function drop(event, columnId) {
     event.preventDefault();
     const taskId = event.dataTransfer.getData("text/plain");
-    const draggedElement = document.getElementById(taskId);
-    
-    if (!draggedElement) return;
-
     updateTaskStatus(taskId, columnId);
-    event.target.closest('.card').querySelector('.task-container').appendChild(draggedElement);
+}
+
+function allowDrop(event) {
+    event.preventDefault();
+    event.target.closest('.card').classList.add('dragover');
 }
 
 function updateTaskStatus(taskId, newStatus) {
+    const now = new Date().toLocaleString();
+    
     data = data.map(task => {
         if (task.id === taskId) {
-            const now = Date.now();
-            const newTimestamps = [...task.timestamp];
-            
-            if(newStatus === 'in-progress') {
-                newTimestamps.push({ dateStart: now });
+            // R\reset endAt jika pindah dari Done
+            let newEndAt = task.endAt;
+            if(task.status === 'done' && newStatus !== 'done') {
+                newEndAt = null;
             }
             
+            // Set endAt if done
             if(newStatus === 'done') {
-                const lastTimestamp = newTimestamps[newTimestamps.length - 1];
-                if(lastTimestamp) lastTimestamp.dateEnd = now;
+                newEndAt = now;
             }
 
             return {
                 ...task,
                 status: newStatus,
-                timestamp: newTimestamps
+                endAt: newEndAt,
+                // update in-progress time
+                inProgressStart: newStatus === 'in-progress' ? Date.now() : null
             };
         }
         return task;

@@ -28,6 +28,10 @@
                     <textarea id="description" placeholder="Task description"></textarea>
                     <div class="error" id="desc-error">Description must be 20-100 characters</div>
                 </div>
+                <div>
+                    <input type="datetime-local" id="deadline" required>
+                    <div class="error" id="deadline-error">Deadline is required</div>
+                </div>
                 <button type="submit">Add Task</button>
             </form>
             <div class="card-wrapper">
