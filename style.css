@@ -1,3 +1,27 @@
+body {
+    font-family: "Plus Jakarta Sans", serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
 .card-wrapper {
     display: flex;
     flex-wrap: wrap;
@@ -28,19 +52,46 @@
     gap: 10px;
 }
 
-.card .task {
+.task {
     margin: 0;
     border: 1px solid #ccc;
-    padding: 20px;
+    padding: 10px;
     display: flex;
     justify-content: space-between;
+    align-items: center; /* Vertically align items */
+    background-color: #fff;
+    border-radius: 5px;
 }
 
-.delete-btn {
+.task:hover {
+    background-color: #f9f9f9;
+}
+
+.task-content {
+    flex-grow: 1;
+}
+
+.delete-btn,
+.edit-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+    margin: 4px 2px;
     cursor: pointer;
+    border-radius: 4px;
 }
 
-#task-form {
+.edit-btn {
+    background-color: #4CAF50;
+}
+
+#create-task-form,
+#edit-task-form {
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -48,20 +99,25 @@
     max-width: 500px;
 }
 
-#task-form input, 
-#task-form textarea {
+#create-task-form input,
+#create-task-form textarea,
+#edit-task-form input,
+#edit-task-form textarea {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
     width: 100%;
+    box-sizing: border-box;
 }
 
-#task-form textarea {
+#create-task-form textarea,
+#edit-task-form textarea {
     height: 80px;
     resize: vertical;
 }
 
-#task-form button {
+#create-task-form button,
+#edit-task-form button {
     align-self: flex-start;
     padding: 8px 20px;
     background: #007bff;
@@ -73,18 +129,23 @@
 
 .task-title {
     margin-bottom: 5px;
+    font-weight: bold;
 }
 
-.error { 
-    color: red; display: none; 
+.error {
+    color: red;
+    display: none;
+    font-size: 0.8em;
+    margin-top: 5px;
 }
 
-.task-title { 
-    font-weight: bold; 
+.task-title {
+    font-weight: bold;
 }
 
-.done-task .task-title { 
-    text-decoration: line-through; 
+.done-task .task-title {
+    text-decoration: line-through;
+    color: #888;
 }
 
 .time-info {
@@ -102,6 +163,7 @@
     padding: 5px;
     background: #f5f5f5;
     border-radius: 4px;
+    font-size: 0.85em;
 }
 
 .drag-handle {
@@ -117,12 +179,86 @@
     opacity: 1;
 }
 
-.task {
-    display: flex;
-    align-items: flex-start;
-    border: 1px solid #ddd;
-    margin: 5px 0;
-    padding: 10px;
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
     background: white;
-    border-radius: 4px;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-sizing: border-box;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.close-modal {
+    cursor: pointer;
+    font-size: 1.5em;
+    color: #888;
+}
+
+.close-modal:hover {
+    color: #333;
+}
+
+.search-bar {
+    margin: 20px 0;
+    width: 100%;
+    max-width: 500px;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+#open-modal-btn {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: background-color 0.3s;
+}
+
+#open-modal-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+        padding: 10px;
+    }
+
+    .card-wrapper {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .card {
+        width: 90%;
+        max-width: 500px;
+    }
+
+    .search-bar {
+        width: 90%;
+    }
 }
